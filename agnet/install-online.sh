@@ -35,15 +35,29 @@ download() {
   exit 1
 }
 
-need_cmd() {
-  local name="$1"
-  if ! command -v "$name" >/dev/null 2>&1; then
-    echo "缺少命令: $name"
-    exit 1
+ensure_unzip() {
+  if command -v unzip >/dev/null 2>&1; then
+    return
   fi
+
+  echo "安装 unzip..."
+  if [[ "$(id -u)" -eq 0 ]]; then
+    apt-get update
+    apt-get install -y unzip
+    return
+  fi
+
+  if command -v sudo >/dev/null 2>&1; then
+    sudo apt-get update
+    sudo apt-get install -y unzip
+    return
+  fi
+
+  echo "缺少 unzip，且当前无法提权安装"
+  exit 1
 }
 
-need_cmd unzip
+ensure_unzip
 
 ZIP_PATH="${TMP_DIR}/agnet-ubuntu-amd64.zip"
 WORK_DIR="${TMP_DIR}/agnet"
