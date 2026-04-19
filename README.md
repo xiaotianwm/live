@@ -6,5 +6,8 @@
 
 - `agnet/ubuntu-amd64/`：`agnet` 的 Ubuntu amd64 部署目录
 - `agnet/agnet-ubuntu-amd64.zip`：同内容压缩包
+- `agnet/install-online.sh`：在线一键安装
+- `agnet/update-online.sh`：在线一键更新
+- `agnet/uninstall-online.sh`：在线一键卸载
 
 部署时直接使用对应目录或压缩包即可。

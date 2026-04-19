@@ -7,6 +7,8 @@
 - `agnet`：Linux 可执行文件
 - `app.env.example`：环境变量示例
 - `install.sh`：一键安装并注册 systemd 服务
+- `update.sh`：更新二进制并重启服务
+- `uninstall.sh`：卸载服务和安装目录
 - `start.sh`：启动服务
 - `stop.sh`：停止服务
 
@@ -14,7 +16,7 @@
 
 ```bash
 cd /path/to/ubuntu-amd64
-chmod +x install.sh start.sh stop.sh agnet
+chmod +x install.sh update.sh uninstall.sh start.sh stop.sh agnet
 sudo ./install.sh
 ```
 
