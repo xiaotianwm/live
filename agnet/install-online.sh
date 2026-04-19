@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_OWNER="xiaotianwm"
+REPO_NAME="live"
+BRANCH="main"
+PACKAGE_URL="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/agnet/agnet-ubuntu-amd64.zip"
+
+TMP_DIR="$(mktemp -d)"
+CLEANUP_DONE="false"
+
+cleanup() {
+  if [[ "${CLEANUP_DONE}" == "false" && -d "${TMP_DIR}" ]]; then
+    rm -rf "${TMP_DIR}"
+    CLEANUP_DONE="true"
+  fi
+}
+trap cleanup EXIT
+
+download() {
+  local url="$1"
+  local output="$2"
+
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$url" -o "$output"
+    return
+  fi
+
+  if command -v wget >/dev/null 2>&1; then
+    wget -qO "$output" "$url"
+    return
+  fi
+
+  echo "缺少 curl 或 wget，无法下载安装包"
+  exit 1
+}
+
+need_cmd() {
+  local name="$1"
+  if ! command -v "$name" >/dev/null 2>&1; then
+    echo "缺少命令: $name"
+    exit 1
+  fi
+}
+
+need_cmd unzip
+
+ZIP_PATH="${TMP_DIR}/agnet-ubuntu-amd64.zip"
+WORK_DIR="${TMP_DIR}/agnet"
+
+echo "下载 agnet 部署包..."
+download "${PACKAGE_URL}" "${ZIP_PATH}"
+
+mkdir -p "${WORK_DIR}"
+unzip -q "${ZIP_PATH}" -d "${WORK_DIR}"
+
+chmod +x "${WORK_DIR}/agnet" "${WORK_DIR}/install.sh" "${WORK_DIR}/start.sh" "${WORK_DIR}/stop.sh"
+
+echo "开始安装..."
+if [[ "$(id -u)" -eq 0 ]]; then
+  bash "${WORK_DIR}/install.sh"
+else
+  if ! command -v sudo >/dev/null 2>&1; then
+    echo "当前不是 root，且系统没有 sudo，无法继续安装"
+    exit 1
+  fi
+  sudo bash "${WORK_DIR}/install.sh"
+fi
+
+echo
+echo "一键安装完成"
+echo "服务状态查看:"
+echo "  systemctl status live-agnet.service"
+echo "日志查看:"
+echo "  journalctl -u live-agnet.service -f"
