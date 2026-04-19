@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_NAME="agnet"
+APP_USER="root"
+APP_GROUP="root"
+INSTALL_DIR="/opt/live/${APP_NAME}"
+BIN_PATH="${INSTALL_DIR}/${APP_NAME}"
+ENV_PATH="${INSTALL_DIR}/app.env"
+SERVICE_PATH="/etc/systemd/system/live-${APP_NAME}.service"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ "$(id -u)" -ne 0 ]]; then
+  echo "请使用 root 执行 install.sh"
+  exit 1
+fi
+
+if [[ ! -f "${SCRIPT_DIR}/${APP_NAME}" ]]; then
+  echo "未找到部署产物: ${SCRIPT_DIR}/${APP_NAME}"
+  exit 1
+fi
+
+export DEBIAN_FRONTEND=noninteractive
+
+if ! command -v ffmpeg >/dev/null 2>&1; then
+  apt-get update
+  apt-get install -y ffmpeg
+fi
+
+mkdir -p "${INSTALL_DIR}/data" "${INSTALL_DIR}/logs"
+
+install -m 0755 "${SCRIPT_DIR}/${APP_NAME}" "${BIN_PATH}"
+
+if [[ ! -f "${ENV_PATH}" ]]; then
+  install -m 0644 "${SCRIPT_DIR}/app.env.example" "${ENV_PATH}"
+fi
+
+cat > "${SERVICE_PATH}" <<EOF
+[Unit]
+Description=Live agnet service
+After=network.target
+
+[Service]
+Type=simple
+User=${APP_USER}
+Group=${APP_GROUP}
+WorkingDirectory=${INSTALL_DIR}
+EnvironmentFile=${ENV_PATH}
+ExecStart=${BIN_PATH}
+Restart=always
+RestartSec=3
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable "live-${APP_NAME}.service"
+systemctl restart "live-${APP_NAME}.service"
+
+echo
+echo "安装完成"
+echo "服务名: live-${APP_NAME}.service"
+echo "配置文件: ${ENV_PATH}"
+echo "启动状态:"
+systemctl --no-pager --full status "live-${APP_NAME}.service" || true
+echo
+echo "本机查看 agent_key:"
+echo "curl http://127.0.0.1:19180/api/agent/info"
