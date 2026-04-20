@@ -12,18 +12,19 @@ SERVICE_PATH="/etc/systemd/system/live-${APP_NAME}.service"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [[ "$(id -u)" -ne 0 ]]; then
-  echo "请使用 root 执行 install.sh"
+  echo "Please run install.sh as root."
   exit 1
 fi
 
 if [[ ! -f "${SCRIPT_DIR}/${APP_NAME}" ]]; then
-  echo "未找到部署产物: ${SCRIPT_DIR}/${APP_NAME}"
+  echo "Deploy artifact not found: ${SCRIPT_DIR}/${APP_NAME}"
   exit 1
 fi
 
 export DEBIAN_FRONTEND=noninteractive
 
 if ! command -v ffmpeg >/dev/null 2>&1; then
+  echo "Installing ffmpeg..."
   apt-get update
   apt-get install -y ffmpeg
 fi
@@ -61,11 +62,11 @@ systemctl enable "live-${APP_NAME}.service"
 systemctl restart "live-${APP_NAME}.service"
 
 echo
-echo "安装完成"
-echo "服务名: live-${APP_NAME}.service"
-echo "配置文件: ${ENV_PATH}"
-echo "启动状态:"
+echo "Install completed."
+echo "Service: live-${APP_NAME}.service"
+echo "Config: ${ENV_PATH}"
+echo "Status:"
 systemctl --no-pager --full status "live-${APP_NAME}.service" || true
 echo
-echo "本机查看 agent_key:"
+echo "Check local agent info:"
 echo "curl http://127.0.0.1:19180/api/agent/info"

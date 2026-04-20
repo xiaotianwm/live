@@ -31,7 +31,7 @@ download() {
     return
   fi
 
-  echo "缺少 curl 或 wget，无法下载安装包"
+  echo "curl or wget is required to download the package."
   exit 1
 }
 
@@ -40,7 +40,7 @@ ensure_unzip() {
     return
   fi
 
-  echo "安装 unzip..."
+  echo "Installing unzip..."
   if [[ "$(id -u)" -eq 0 ]]; then
     apt-get update
     apt-get install -y unzip
@@ -53,7 +53,7 @@ ensure_unzip() {
     return
   fi
 
-  echo "缺少 unzip，且当前无法提权安装"
+  echo "unzip is required and could not be installed automatically."
   exit 1
 }
 
@@ -62,7 +62,7 @@ ensure_unzip
 ZIP_PATH="${TMP_DIR}/agnet-ubuntu-amd64.zip"
 WORK_DIR="${TMP_DIR}/agnet"
 
-echo "下载 agnet 部署包..."
+echo "Downloading agnet package..."
 download "${PACKAGE_URL}" "${ZIP_PATH}"
 
 mkdir -p "${WORK_DIR}"
@@ -70,20 +70,20 @@ unzip -q "${ZIP_PATH}" -d "${WORK_DIR}"
 
 chmod +x "${WORK_DIR}/agnet" "${WORK_DIR}/install.sh" "${WORK_DIR}/start.sh" "${WORK_DIR}/stop.sh"
 
-echo "开始安装..."
+echo "Installing agnet..."
 if [[ "$(id -u)" -eq 0 ]]; then
   bash "${WORK_DIR}/install.sh"
 else
   if ! command -v sudo >/dev/null 2>&1; then
-    echo "当前不是 root，且系统没有 sudo，无法继续安装"
+    echo "This script is not running as root and sudo is unavailable."
     exit 1
   fi
   sudo bash "${WORK_DIR}/install.sh"
 fi
 
 echo
-echo "一键安装完成"
-echo "服务状态查看:"
+echo "Online install completed."
+echo "Service status:"
 echo "  systemctl status live-agnet.service"
-echo "日志查看:"
+echo "Logs:"
 echo "  journalctl -u live-agnet.service -f"

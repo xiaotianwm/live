@@ -6,7 +6,7 @@ INSTALL_DIR="/opt/live/${APP_NAME}"
 SERVICE_PATH="/etc/systemd/system/live-${APP_NAME}.service"
 
 if [[ "$(id -u)" -ne 0 ]]; then
-  echo "请使用 root 执行 uninstall.sh"
+  echo "Please run uninstall.sh as root."
   exit 1
 fi
 
@@ -22,7 +22,7 @@ systemctl reset-failed || true
 rm -rf "${INSTALL_DIR}"
 
 echo
-echo "卸载完成"
-echo "已移除:"
+echo "Uninstall completed."
+echo "Removed:"
 echo "  ${SERVICE_PATH}"
 echo "  ${INSTALL_DIR}"

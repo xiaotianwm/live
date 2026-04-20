@@ -1,18 +1,19 @@
-# agnet 部署包
+# agnet Deployment Package
 
-这是 `agnet` 的 Ubuntu `amd64` 部署目录，只包含部署产物和脚本，不包含源码。
+This directory contains the Ubuntu `amd64` deployment package for `agnet`.
+It includes deploy artifacts and scripts only, not source code.
 
-## 目录说明
+## Files
 
-- `agnet`：Linux 可执行文件
-- `app.env.example`：环境变量示例
-- `install.sh`：一键安装并注册 systemd 服务
-- `update.sh`：更新二进制并重启服务
-- `uninstall.sh`：卸载服务和安装目录
-- `start.sh`：启动服务
-- `stop.sh`：停止服务
+- `agnet`: Linux executable
+- `app.env.example`: example environment file
+- `install.sh`: install and register the systemd service
+- `update.sh`: update the binary and restart the service
+- `uninstall.sh`: remove the service and install directory
+- `start.sh`: start the service
+- `stop.sh`: stop the service
 
-## 使用方式
+## Usage
 
 ```bash
 cd /path/to/ubuntu-amd64
@@ -20,20 +21,21 @@ chmod +x install.sh update.sh uninstall.sh start.sh stop.sh agnet
 sudo ./install.sh
 ```
 
-安装完成后：
+## Installed Paths
 
-- 服务名：`live-agnet.service`
-- 安装目录：`/opt/live/agnet`
-- 配置文件：`/opt/live/agnet/app.env`
-- 数据目录：`/opt/live/agnet/data`
-- 日志查看：
+- Service: `live-agnet.service`
+- Install dir: `/opt/live/agnet`
+- Config: `/opt/live/agnet/app.env`
+- Data dir: `/opt/live/agnet/data`
+
+## Logs
 
 ```bash
 journalctl -u live-agnet.service -f
 ```
 
-## 说明
+## Notes
 
-- `install.sh` 会在系统缺少 `ffmpeg` 时自动安装
-- 默认监听地址示例为 `0.0.0.0:19180`
-- `GET /api/agent/info` 默认只允许本机访问
+- `install.sh` installs `ffmpeg` automatically if it is missing.
+- Default listen address example: `0.0.0.0:19180`
+- `GET /api/agent/info` is loopback-only by default.

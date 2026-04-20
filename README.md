@@ -1,13 +1,14 @@
 # live
 
-这个仓库只存放部署产物和部署脚本，不存放源码。
+This repository stores deployment artifacts and deploy scripts only.
+It does not store source code.
 
-当前内容：
+## Current Contents
 
-- `agnet/ubuntu-amd64/`：`agnet` 的 Ubuntu amd64 部署目录
-- `agnet/agnet-ubuntu-amd64.zip`：同内容压缩包
-- `agnet/install-online.sh`：在线一键安装
-- `agnet/update-online.sh`：在线一键更新
-- `agnet/uninstall-online.sh`：在线一键卸载
+- `agnet/ubuntu-amd64/`: Ubuntu amd64 deployment directory for `agnet`
+- `agnet/agnet-ubuntu-amd64.zip`: packaged archive with the same contents
+- `agnet/install-online.sh`: one-command online install
+- `agnet/update-online.sh`: one-command online update
+- `agnet/uninstall-online.sh`: one-command online uninstall
 
-部署时直接使用对应目录或压缩包即可。
+Use the directory, archive, or online scripts directly for deployment.
