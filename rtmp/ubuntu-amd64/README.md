@@ -1,18 +1,17 @@
 # rtmp Ubuntu AMD64
 
-This directory contains the Ubuntu `amd64` deployment package for `rtmp`.
+这个目录包含 `rtmp` 的 Ubuntu `amd64` 发布包。
 
-Contents:
+内容：
+- `rtmp`: Linux `amd64` 二进制
+- `app.env.example`: 环境变量示例
+- `install.sh`: 安装并注册 systemd 服务
+- `update.sh`: 替换二进制并重启服务
+- `uninstall.sh`: 卸载服务和安装目录
+- `start.sh`: 启动服务
+- `stop.sh`: 停止服务
 
-- `rtmp`: Linux `amd64` binary
-- `app.env.example`: example environment file
-- `install.sh`: install and register the systemd service
-- `update.sh`: replace the binary and restart the service
-- `uninstall.sh`: remove the service and install directory
-- `start.sh`: start the service
-- `stop.sh`: stop the service
-
-Usage:
+使用方式：
 
 ```bash
 cd /path/to/ubuntu-amd64
@@ -20,13 +19,12 @@ chmod +x install.sh update.sh uninstall.sh start.sh stop.sh rtmp
 sudo ./install.sh
 ```
 
-Service details:
+服务信息：
+- 服务名：`live-rtmp.service`
+- 安装目录：`/opt/live/rtmp`
+- 配置文件：`/opt/live/rtmp/app.env`
 
-- Service: `live-rtmp.service`
-- Install dir: `/opt/live/rtmp`
-- Config: `/opt/live/rtmp/app.env`
-
-Logs:
+日志查看：
 
 ```bash
 journalctl -u live-rtmp.service -f
