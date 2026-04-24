@@ -4,7 +4,7 @@ set -euo pipefail
 REPO_OWNER="xiaotianwm"
 REPO_NAME="live"
 BRANCH="main"
-PACKAGE_URL="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/host/host-ubuntu-amd64.zip"
+PACKAGE_URL="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/host/host-ubuntu-amd64.tar.gz"
 
 TMP_DIR="$(mktemp -d)"
 CLEANUP_DONE="false"
@@ -35,38 +35,38 @@ download() {
   exit 1
 }
 
-ensure_unzip() {
-  if command -v unzip >/dev/null 2>&1; then
+ensure_tar() {
+  if command -v tar >/dev/null 2>&1; then
     return
   fi
 
-  echo "Installing unzip..."
+  echo "Installing tar..."
   if [[ "$(id -u)" -eq 0 ]]; then
     apt-get update
-    apt-get install -y unzip
+    apt-get install -y tar
     return
   fi
 
   if command -v sudo >/dev/null 2>&1; then
     sudo apt-get update
-    sudo apt-get install -y unzip
+    sudo apt-get install -y tar
     return
   fi
 
-  echo "unzip is required and could not be installed automatically."
+  echo "tar is required and could not be installed automatically."
   exit 1
 }
 
-ensure_unzip
+ensure_tar
 
-ZIP_PATH="${TMP_DIR}/host-ubuntu-amd64.zip"
+ARCHIVE_PATH="${TMP_DIR}/host-ubuntu-amd64.tar.gz"
 WORK_DIR="${TMP_DIR}/host"
 
 echo "Downloading host package..."
-download "${PACKAGE_URL}" "${ZIP_PATH}"
+download "${PACKAGE_URL}" "${ARCHIVE_PATH}"
 
 mkdir -p "${WORK_DIR}"
-unzip -q "${ZIP_PATH}" -d "${WORK_DIR}"
+tar -xzf "${ARCHIVE_PATH}" -C "${WORK_DIR}"
 
 chmod +x "${WORK_DIR}/uninstall.sh"
 
