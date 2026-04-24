@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_NAME="host"
+APP_USER="root"
+APP_GROUP="root"
+INSTALL_DIR="/opt/live/${APP_NAME}"
+BIN_PATH="${INSTALL_DIR}/${APP_NAME}"
+ENV_PATH="${INSTALL_DIR}/app.env"
+SERVICE_PATH="/etc/systemd/system/live-${APP_NAME}.service"
+STATIC_DIR="${INSTALL_DIR}/dist"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ "$(id -u)" -ne 0 ]]; then
+  echo "Please run update.sh as root."
+  exit 1
+fi
+
+if [[ ! -f "${SERVICE_PATH}" ]]; then
+  echo "Installed service not found: live-${APP_NAME}.service"
+  exit 1
+fi
+
+if [[ ! -f "${SCRIPT_DIR}/${APP_NAME}" ]]; then
+  echo "Deploy artifact not found: ${SCRIPT_DIR}/${APP_NAME}"
+  exit 1
+fi
+
+if [[ ! -d "${SCRIPT_DIR}/dist" ]]; then
+  echo "Deploy static dir not found: ${SCRIPT_DIR}/dist"
+  exit 1
+fi
+
+mkdir -p "${INSTALL_DIR}"
+
+install -m 0755 "${SCRIPT_DIR}/${APP_NAME}" "${BIN_PATH}"
+rm -rf "${STATIC_DIR}"
+mkdir -p "${STATIC_DIR}"
+cp -R "${SCRIPT_DIR}/dist/." "${STATIC_DIR}/"
+
+if [[ ! -f "${ENV_PATH}" ]]; then
+  install -m 0600 "${SCRIPT_DIR}/app.env.example" "${ENV_PATH}"
+  echo "Config file was missing. Created: ${ENV_PATH}"
+  echo "Please edit it before starting the service if PostgreSQL is not configured."
+  exit 1
+fi
+
+cat > "${SERVICE_PATH}" <<EOF
+[Unit]
+Description=Live host service
+After=network.target
+
+[Service]
+Type=simple
+User=${APP_USER}
+Group=${APP_GROUP}
+WorkingDirectory=${INSTALL_DIR}
+EnvironmentFile=${ENV_PATH}
+ExecStart=${BIN_PATH}
+Restart=always
+RestartSec=3
+LimitNOFILE=1048576
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl restart "live-${APP_NAME}.service"
+
+echo
+echo "Update completed."
+echo "Config preserved at: ${ENV_PATH}"
+systemctl --no-pager --full status "live-${APP_NAME}.service" || true
