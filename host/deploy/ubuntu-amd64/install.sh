@@ -8,7 +8,6 @@ INSTALL_DIR="/opt/live/${APP_NAME}"
 BIN_PATH="${INSTALL_DIR}/${APP_NAME}"
 ENV_PATH="${INSTALL_DIR}/app.env"
 SERVICE_PATH="/etc/systemd/system/live-${APP_NAME}.service"
-DATA_DIR="${INSTALL_DIR}/data"
 LOG_DIR="${INSTALL_DIR}/logs"
 STATIC_DIR="${INSTALL_DIR}/dist"
 
@@ -31,7 +30,7 @@ fi
 
 export DEBIAN_FRONTEND=noninteractive
 
-mkdir -p "${INSTALL_DIR}" "${DATA_DIR}" "${LOG_DIR}"
+mkdir -p "${INSTALL_DIR}" "${LOG_DIR}"
 
 install -m 0755 "${SCRIPT_DIR}/${APP_NAME}" "${BIN_PATH}"
 rm -rf "${STATIC_DIR}"
@@ -105,7 +104,6 @@ if [[ ! -f "${ENV_PATH}" ]]; then
 
   cat > "${ENV_PATH}" <<EOF
 HOST_ADDR=${host_addr}
-HOST_DATA_FILE=${DATA_DIR}/host-state.json
 HOST_STATIC_DIR=dist
 HOST_BASE_PATH=${base_path}
 
