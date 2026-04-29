@@ -61,24 +61,41 @@ ensure_tar
 
 ARCHIVE_PATH="${TMP_DIR}/host-ubuntu-amd64.tar.gz"
 WORK_DIR="${TMP_DIR}/host"
+DEPLOY_DIR=""
+
+resolve_deploy_dir() {
+  if [[ -f "${WORK_DIR}/host" && -f "${WORK_DIR}/install.sh" ]]; then
+    DEPLOY_DIR="${WORK_DIR}"
+    return
+  fi
+
+  if [[ -f "${WORK_DIR}/deploy/ubuntu-amd64/host" && -f "${WORK_DIR}/deploy/ubuntu-amd64/install.sh" ]]; then
+    DEPLOY_DIR="${WORK_DIR}/deploy/ubuntu-amd64"
+    return
+  fi
+
+  echo "Unable to locate host deploy directory in extracted package."
+  exit 1
+}
 
 echo "Downloading host package..."
 download "${PACKAGE_URL}" "${ARCHIVE_PATH}"
 
 mkdir -p "${WORK_DIR}"
 tar -xzf "${ARCHIVE_PATH}" -C "${WORK_DIR}"
+resolve_deploy_dir
 
-chmod +x "${WORK_DIR}/host" "${WORK_DIR}/install.sh" "${WORK_DIR}/update.sh" "${WORK_DIR}/uninstall.sh" "${WORK_DIR}/start.sh" "${WORK_DIR}/stop.sh"
+chmod +x "${DEPLOY_DIR}/host" "${DEPLOY_DIR}/install.sh" "${DEPLOY_DIR}/update.sh" "${DEPLOY_DIR}/uninstall.sh" "${DEPLOY_DIR}/start.sh" "${DEPLOY_DIR}/stop.sh"
 
 echo "Installing host..."
 if [[ "$(id -u)" -eq 0 ]]; then
-  bash "${WORK_DIR}/install.sh"
+  bash "${DEPLOY_DIR}/install.sh"
 else
   if ! command -v sudo >/dev/null 2>&1; then
     echo "This script is not running as root and sudo is unavailable."
     exit 1
   fi
-  sudo bash "${WORK_DIR}/install.sh"
+  sudo bash "${DEPLOY_DIR}/install.sh"
 fi
 
 echo
