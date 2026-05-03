@@ -10,6 +10,7 @@ APP_NAME="host"
 INSTALL_DIR="/opt/live/${APP_NAME}"
 ENV_PATH="${INSTALL_DIR}/app.env"
 SERVICE_NAME="live-${APP_NAME}.service"
+PROMPT_TTY="/dev/tty"
 
 run_as_root() {
   if [[ "$(id -u)" -eq 0 ]]; then
@@ -41,7 +42,7 @@ prompt_default() {
   local label="$1"
   local default_value="$2"
   local input=""
-  read -r -p "${label} [${default_value}]: " input || true
+  read -r -p "${label} [${default_value}]: " input < "${PROMPT_TTY}" || true
   if [[ -z "${input}" ]]; then
     input="${default_value}"
   fi
@@ -65,7 +66,7 @@ prompt_secret() {
   local label="$1"
   local value=""
   while [[ -z "${value}" ]]; do
-    read -r -s -p "${label}: " value || true
+    read -r -s -p "${label}: " value < "${PROMPT_TTY}" || true
     echo
     if [[ -z "${value}" ]]; then
       echo "${label} is required."
@@ -102,6 +103,11 @@ fi
 echo
 echo "Configure PostgreSQL for host."
 echo "The password input is hidden and will only be written to ${ENV_PATH}."
+
+if [[ ! -r "${PROMPT_TTY}" ]]; then
+  echo "No interactive terminal detected. Please run this script from a terminal."
+  exit 1
+fi
 
 pg_host="$(prompt_required "PostgreSQL host" "")"
 pg_port="$(prompt_default "PostgreSQL port" "5432")"
