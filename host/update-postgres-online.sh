@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_OWNER="xiaotianwm"
+REPO_NAME="live"
+BRANCH="main"
+UPDATE_URL="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/host/update-online.sh"
+
+APP_NAME="host"
+INSTALL_DIR="/opt/live/${APP_NAME}"
+ENV_PATH="${INSTALL_DIR}/app.env"
+SERVICE_NAME="live-${APP_NAME}.service"
+
+run_as_root() {
+  if [[ "$(id -u)" -eq 0 ]]; then
+    "$@"
+    return
+  fi
+  if ! command -v sudo >/dev/null 2>&1; then
+    echo "This script is not running as root and sudo is unavailable."
+    exit 1
+  fi
+  sudo "$@"
+}
+
+download_to_stdout() {
+  local url="$1"
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$url"
+    return
+  fi
+  if command -v wget >/dev/null 2>&1; then
+    wget -qO- "$url"
+    return
+  fi
+  echo "curl or wget is required."
+  exit 1
+}
+
+prompt_default() {
+  local label="$1"
+  local default_value="$2"
+  local input=""
+  read -r -p "${label} [${default_value}]: " input || true
+  if [[ -z "${input}" ]]; then
+    input="${default_value}"
+  fi
+  printf '%s' "${input}"
+}
+
+prompt_required() {
+  local label="$1"
+  local default_value="$2"
+  local value=""
+  while [[ -z "${value}" ]]; do
+    value="$(prompt_default "${label}" "${default_value}")"
+    if [[ -z "${value}" ]]; then
+      echo "${label} is required."
+    fi
+  done
+  printf '%s' "${value}"
+}
+
+prompt_secret() {
+  local label="$1"
+  local value=""
+  while [[ -z "${value}" ]]; do
+    read -r -s -p "${label}: " value || true
+    echo
+    if [[ -z "${value}" ]]; then
+      echo "${label} is required."
+    fi
+  done
+  printf '%s' "${value}"
+}
+
+escape_sed_replacement() {
+  printf '%s' "$1" | sed -e 's/[\/&]/\\&/g'
+}
+
+upsert_env() {
+  local key="$1"
+  local value="$2"
+  local escaped
+  escaped="$(escape_sed_replacement "${value}")"
+  if run_as_root grep -q "^${key}=" "${ENV_PATH}" 2>/dev/null; then
+    run_as_root sed -i "s/^${key}=.*/${key}=${escaped}/" "${ENV_PATH}"
+  else
+    printf '%s=%s\n' "${key}" "${value}" | run_as_root tee -a "${ENV_PATH}" >/dev/null
+  fi
+}
+
+echo "Updating host package..."
+download_to_stdout "${UPDATE_URL}" | bash
+
+if [[ ! -f "${ENV_PATH}" ]]; then
+  echo "Host config not found: ${ENV_PATH}"
+  echo "Please install host first."
+  exit 1
+fi
+
+echo
+echo "Configure PostgreSQL for host."
+echo "The password input is hidden and will only be written to ${ENV_PATH}."
+
+pg_host="$(prompt_required "PostgreSQL host" "")"
+pg_port="$(prompt_default "PostgreSQL port" "5432")"
+pg_user="$(prompt_required "PostgreSQL user" "")"
+pg_password="$(prompt_secret "PostgreSQL password")"
+pg_db="$(prompt_default "PostgreSQL database" "live_host")"
+pg_bootstrap_db="$(prompt_default "Bootstrap database" "postgres")"
+pg_sslmode="$(prompt_default "PostgreSQL sslmode" "require")"
+pg_state_key="$(prompt_default "PostgreSQL state key" "default")"
+
+timestamp="$(date +%Y%m%d-%H%M%S)"
+run_as_root cp "${ENV_PATH}" "${ENV_PATH}.bak-${timestamp}"
+
+upsert_env "HOST_POSTGRES_DSN" ""
+upsert_env "HOST_POSTGRES_HOST" "${pg_host}"
+upsert_env "HOST_POSTGRES_PORT" "${pg_port}"
+upsert_env "HOST_POSTGRES_USER" "${pg_user}"
+upsert_env "HOST_POSTGRES_PASSWORD" "${pg_password}"
+upsert_env "HOST_POSTGRES_DB" "${pg_db}"
+upsert_env "HOST_POSTGRES_BOOTSTRAP_DB" "${pg_bootstrap_db}"
+upsert_env "HOST_POSTGRES_SSLMODE" "${pg_sslmode}"
+upsert_env "HOST_POSTGRES_STATE_KEY" "${pg_state_key}"
+run_as_root chmod 600 "${ENV_PATH}"
+
+echo
+echo "Restarting ${SERVICE_NAME} with updated PostgreSQL config..."
+run_as_root systemctl restart "${SERVICE_NAME}"
+
+echo
+echo "Update and PostgreSQL switch completed."
+echo "Config: ${ENV_PATH}"
+echo "Backup: ${ENV_PATH}.bak-${timestamp}"
+run_as_root systemctl --no-pager --full status "${SERVICE_NAME}" || true
