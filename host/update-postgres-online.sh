@@ -67,28 +67,12 @@ prompt_secret() {
   local value=""
   while [[ -z "${value}" ]]; do
     read -r -s -p "${label}: " value < "${PROMPT_TTY}" || true
-    echo
+    echo > "${PROMPT_TTY}"
     if [[ -z "${value}" ]]; then
-      echo "${label} is required."
+      echo "${label} is required." > "${PROMPT_TTY}"
     fi
   done
   printf '%s' "${value}"
-}
-
-escape_sed_replacement() {
-  printf '%s' "$1" | sed -e 's/[\/&]/\\&/g'
-}
-
-upsert_env() {
-  local key="$1"
-  local value="$2"
-  local escaped
-  escaped="$(escape_sed_replacement "${value}")"
-  if run_as_root grep -q "^${key}=" "${ENV_PATH}" 2>/dev/null; then
-    run_as_root sed -i "s/^${key}=.*/${key}=${escaped}/" "${ENV_PATH}"
-  else
-    printf '%s=%s\n' "${key}" "${value}" | run_as_root tee -a "${ENV_PATH}" >/dev/null
-  fi
 }
 
 echo "Updating host package..."
@@ -121,16 +105,28 @@ pg_state_key="$(prompt_default "PostgreSQL state key" "default")"
 timestamp="$(date +%Y%m%d-%H%M%S)"
 run_as_root cp "${ENV_PATH}" "${ENV_PATH}.bak-${timestamp}"
 
-upsert_env "HOST_POSTGRES_DSN" ""
-upsert_env "HOST_POSTGRES_HOST" "${pg_host}"
-upsert_env "HOST_POSTGRES_PORT" "${pg_port}"
-upsert_env "HOST_POSTGRES_USER" "${pg_user}"
-upsert_env "HOST_POSTGRES_PASSWORD" "${pg_password}"
-upsert_env "HOST_POSTGRES_DB" "${pg_db}"
-upsert_env "HOST_POSTGRES_BOOTSTRAP_DB" "${pg_bootstrap_db}"
-upsert_env "HOST_POSTGRES_SSLMODE" "${pg_sslmode}"
-upsert_env "HOST_POSTGRES_STATE_KEY" "${pg_state_key}"
-run_as_root chmod 600 "${ENV_PATH}"
+tmp_env="$(mktemp)"
+cat > "${tmp_env}" <<EOF
+HOST_ADDR=0.0.0.0:18081
+HOST_STATIC_DIR=dist
+HOST_BASE_PATH=
+
+HOST_POSTGRES_DSN=
+HOST_POSTGRES_HOST=${pg_host}
+HOST_POSTGRES_PORT=${pg_port}
+HOST_POSTGRES_USER=${pg_user}
+HOST_POSTGRES_PASSWORD=${pg_password}
+HOST_POSTGRES_DB=${pg_db}
+HOST_POSTGRES_BOOTSTRAP_DB=${pg_bootstrap_db}
+HOST_POSTGRES_SSLMODE=${pg_sslmode}
+HOST_POSTGRES_STATE_KEY=${pg_state_key}
+
+HOST_MEDIA_TEST_TIMEOUT=5s
+HOST_STORAGE_TEST_WRITE_OBJECT=false
+HOST_STORAGE_TEST_OBJECT_PREFIX=host-connectivity-check
+EOF
+run_as_root install -m 0600 "${tmp_env}" "${ENV_PATH}"
+rm -f "${tmp_env}"
 
 echo
 echo "Restarting ${SERVICE_NAME} with updated PostgreSQL config..."
